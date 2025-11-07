@@ -38,16 +38,6 @@ class DetectorNode(Node):
         dist = msg.ranges[pos_to_access]
 
         if(not math.isinf(dist)):
-            laser2obj_mat = tft.euler_matrix(0, 0, 0, 'sxyz') #R.from_euler('xyz', [0, 0, 0], degrees=True)
-            laser2obj_mat[:3, 3] = [dist, 0.0, 0.0]
-            # laser2obj = Transform()
-            # laser2obj.translation.x = dist
-            # laser2obj.translation.y = 0.0
-            # laser2obj.translation.z = 0.0
-            # laser2obj.rotation.x = 0.0
-            # laser2obj.rotation.y = 0.0
-            # laser2obj.rotation.z = 0.0
-            # laser2obj.rotation.w = 1.0
 
             odom2laser_msg = TransformStamped()
             try:
@@ -61,25 +51,8 @@ class DetectorNode(Node):
             except Exception as e:
                 self.get_logger().warn(f'Fail to lookup transform: {e}')
                 return
-            
-            odom2laser_mat =  tft.quaternion_matrix(
-                [odom2laser_msg.transform.rotation.x,
-                 odom2laser_msg.transform.rotation.y,
-                 odom2laser_msg.transform.rotation.z,
-                 odom2laser_msg.transform.rotation.w
-                 ])
-            odom2laser_mat[:3, 3] = [odom2laser_msg.transform.translation.x, odom2laser_msg.transform.translation.y, odom2laser_msg.transform.translation.z] 
-            # odom2object_mat = odom2laser_mat @ laser2obj_mat
-            
-            odom2object_msg = TransformStamped()
-            odom2object_msg.header.stamp = msg.header.stamp
-            odom2object_msg._header.frame_id = 'odom'
-            odom2object_msg.child_frame_id = 'detected_object'
-            
-            # odom2object_msg.transform.translation = tft.translation_from_matrix(odom2object_mat)
-            # odom2object_msg.transform.rotation = tft.quaternion_from_matrix(odom2object_mat)
-
-            self.tf_broadcaster.sendTransform(odom2object_msg)
+        
+            self.tf_broadcaster.sendTransform(odom2laser_msg)
             
 
 class MonitorNode(Node):
@@ -93,20 +66,22 @@ class MonitorNode(Node):
         self.timer = self.create_timer(0.5, self.control_cycle)
 
     def control_cycle(self):
-        robot2obj_msg = TransformStamped()
+        target_frame = 'odom'
+        source_frame = 'base_footprint'
+        odom2robot_msg = TransformStamped()
         try:
-            robot2obj_msg = self.tf_buffer_.lookup_transform(
-                target_frame='base_footprint',
-                source_frame='detected_object',
+            odom2robot_msg = self.tf_buffer_.lookup_transform(
+                target_frame,
+                source_frame,
                 time=rclpy.time.Time()
             )
         except Exception as e:
-            self.get_logger().warn(f'Fail to lookup transform from base_footprint to detected_object: {e}')
+            self.get_logger().warn(f'Fail to lookup transform from {target_frame} to {source_frame}: {e}')
             return
         
-        x = robot2obj_msg.transform.translation.x
-        y = robot2obj_msg.transform.translation.y
-        z = robot2obj_msg.transform.translation.z
+        x = odom2robot_msg.transform.translation.x
+        y = odom2robot_msg.transform.translation.y
+        z = odom2robot_msg.transform.translation.z
         theta = math.atan2(y, x)
 
         self.get_logger().info(f'Object at {x:.2f}, {y:.2f}, {z:.2f}, {math.degrees(theta):.1f} deg')
