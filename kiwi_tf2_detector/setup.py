@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'detector_main = kiwi_tf2_detector.detector_main:main'
         ],
     },
 )
