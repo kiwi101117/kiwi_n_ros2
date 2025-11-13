@@ -1,7 +1,7 @@
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import TransformStamped, Transform, Point, Quaternion
 from visualization_msgs.msg import Marker
-from tf2_ros import StaticTransformBroadcaster, TransformListener, Buffer 
+from tf2_ros import TransformBroadcaster, TransformListener, Buffer 
 
 
 import math
@@ -24,7 +24,7 @@ class DetectorNode(Node):
         self.tf_buffer_ = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer_, self)
 
-        self.tf_broadcaster = StaticTransformBroadcaster(self)
+        self.tf_broadcaster = TransformBroadcaster(self)
 
         self.scan_sub = self.create_subscription(
             LaserScan, 
@@ -32,13 +32,13 @@ class DetectorNode(Node):
             self.scan_callback, 
             qos_profile_sensor_data)
         
+        
     def scan_callback(self, msg):
         pos_to_access = len(msg.ranges)//2 #msg.ranges.index(min(msg.ranges))
-        
         dist = msg.ranges[pos_to_access]
 
         if(not math.isinf(dist)):
-            laser2obj_mat = tft.euler_matrix(0, 0, 0) @ tft.translation_matrix((dist, 0, 0))
+            laser2obj_mat = tft.translation_matrix((dist, 0, 0)) @ tft.euler_matrix(0, 0, 0)
 
             target_frame = 'odom'
             source_frame = 'base_laser_link'
@@ -47,10 +47,10 @@ class DetectorNode(Node):
                 odom2laser_msg = self.tf_buffer_.lookup_transform(
                     target_frame,
                     source_frame,
-                    time=Time(),
+                    time=Time.from_msg(msg.header.stamp),
                     timeout=Duration(seconds=0.2)
                 )
-                self.get_logger().info(f'Get {target_frame} to {source_frame}, laser2obj_mat: \n{laser2obj_mat}')
+                self.get_logger().info(f'Get {target_frame} to {source_frame}, laser to obj: {dist}')
             except Exception as e:
                 self.get_logger().warn(f'Fail to lookup transform: {e}')
                 return
@@ -117,7 +117,7 @@ class MonitorNode(Node):
 
         marker = Marker()
         marker.header.frame_id = 'base_footprint'
-        marker.header.stamp = self.get_clock().now().to_msg()#Time.to_msg(self.get_clock().now())
+        marker.header.stamp = self.get_clock().now().to_msg()
         marker.type = Marker.ARROW
         marker.action = Marker.ADD
         marker.lifetime = Duration(seconds=1).to_msg()
@@ -156,7 +156,10 @@ def main(args=None):
     executor.add_node(detector)
     executor.add_node(monitor)
     executor.add_node(demo)
-    executor.spin()    
+    try:
+        executor.spin()
+    except Exception as e:
+        print(f'Stopped due to {e}')    
 
     executor.shutdown()
     detector.destroy_node()
