@@ -4,6 +4,7 @@ logs/
 */build/
 */install/
 */vscode/
+vscode/
 bin/
 lib/
 msg_gen/
