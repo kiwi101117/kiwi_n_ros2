@@ -1,0 +1,2 @@
+geometry_msgs/Point location
+int64 count_kiwi
