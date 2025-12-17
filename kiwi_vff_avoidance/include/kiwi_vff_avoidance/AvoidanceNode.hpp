@@ -12,9 +12,16 @@ namespace kiwi_vff_avoidance
 {
     struct VFFVectors
     {
-        std::vector<float> attractive;
-        std::vector<float> repulsive;
+        std::vector<float> attractive = {0.0, 0.0};
+        std::vector<float> repulsive = {0.0, 0.0};
         std::vector<float> result;
+
+        std::vector<float> get_result()
+        {
+            std::vector<float> ans = {attractive[0] + repulsive[0], attractive[1] + repulsive[1]};
+            return ans;
+
+        }
     };
 
     class AvoidanceNode : public rclcpp::Node
@@ -24,7 +31,9 @@ namespace kiwi_vff_avoidance
     
         void scan_callback(sensor_msgs::msg::LaserScan::UniquePtr msg);
         void control_cycle();
+
     protected:
+        VFFVectors get_vff(const sensor_msgs::msg::LaserScan& scan);
 
     private:
         rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;

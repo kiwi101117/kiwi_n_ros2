@@ -11,10 +11,7 @@ using std::placeholders::_1;
 
 namespace kiwi_vff_avoidance
 {
-    std::vector<float> VFFVectors::get_result()
-    {
-        return std::vector<float>{ attractive[0] + repulsive[0], attractive[1] + repulsive[1]};
-    }
+
 
     AvoidanceNode::AvoidanceNode() : Node("kiwi_avoidance_vff")
     {
@@ -43,7 +40,6 @@ namespace kiwi_vff_avoidance
         VFFVectors vff;
         vff.attractive = {THRESHOLD_DIST, 0.0};
         vff.repulsive = {0.0, 0.0};
-        vff.result = {0.0, 0.0};
 
         auto min_ind = std::min_element(scan.ranges.begin(), scan.ranges.end()) - scan.ranges.begin();
         float min_dist = scan.ranges[min_ind];
@@ -57,8 +53,6 @@ namespace kiwi_vff_avoidance
             vff.repulsive[0] = cos(opposite_ang) * complementary_dist;
             vff.repulsive[1] = sin(opposite_ang) * complementary_dist;
         }
-
-        vff.result = vff.get_result();
         
         return vff;
     }
