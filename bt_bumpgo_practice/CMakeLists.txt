@@ -33,13 +33,22 @@ set(dependencies
 
 include_directories(include ${ZMQ_INCLUDE_DIRS})
 
-add_library(br2_forward_bt_node SHARED IMPORTED)
-set_property(TARGET br2_forward_bt_node PROPERTY IMPORTED_LOCATION
-  "/home/kiwi101117/bookros2_ws/install/br2_bt_bumpgo/lib/libbr2_forward_bt_node.so"
+list(APPEND plugin_libs
+  br2_forward_bt_node
+  br2_back_bt_node
+  br2_turn_bt_node
+  br2_is_obstacle_bt_node
 )
-target_include_directories(br2_forward_bt_node INTERFACE 
-  "/home/kiwi101117/bookros2_ws/install/br2_bt_bumpgo/include"
-)
+
+foreach(bt_lib ${plugin_libs})
+  add_library(${bt_lib} SHARED IMPORTED)
+  set_property(TARGET ${bt_lib} PROPERTY IMPORTED_LOCATION
+    "/home/kiwi101117/bookros2_ws/install/br2_bt_bumpgo/lib/lib${bt_lib}.so"
+  )
+  target_include_directories(${bt_lib} INTERFACE
+    "/home/kiwi101117/bookros2_ws/install/br2_bt_bumpgo/include"
+  )
+endforeach()
 
 add_executable(practice_forward src/practice_forward.cpp)
 ament_target_dependencies(practice_forward ${dependencies})
@@ -62,6 +71,8 @@ if(BUILD_TESTING)
   # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  add_subdirectory(tests)
 endif()
 
 ament_export_include_directories(include)
